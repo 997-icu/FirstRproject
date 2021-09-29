@@ -1,0 +1,29 @@
+---
+title: "FirstRmarkdown"
+author: "tianheng Z"
+date: "29/09/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r,results='hold'}
+x <- seq(0,20,0.01)
+y <- sin(seq(0,20,0.01))
+sin_df <- data.frame(x,y)
+head(sin_df,3)
+```
+##Rplot
+```{r}
+plot(x,y)
+```
+
+\begin{equation}y=\sin(x)\end{equation}
+
+$$ \sin(x)=\sum_{n=1}^{\infty}(-1)^{n+1}\cdot\frac{x^{2n-1}}{(2n-1)!}\approx x-\frac{x^3}{3!}+\frac{x^5}{5!}-\frac{x^7}{7!}\ldots.$$
+
+
+
+$$ A=\left(\begin{matrix} a_{11} & a_{12}\\ a_{21} &a_{22}\end{matrix}\right). $$
