@@ -1,0 +1,258 @@
+---
+title: "Week2 Rmarkdown"
+author: "Tianheng Z"
+date: "06/10/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(repos = list(CRAN="http://cran.rstudio.com/"))
+```
+
+## Include and Install the library
+```{r,echo=TRUE,eval=TRUE,results='hide'}
+install.packages("tidyverse")
+library(tidyverse)
+install.packages("Stat2Data")
+library(Stat2Data)
+install.packages("ggpubr")
+library(ggpubr)
+```
+
+# Load the data
+```{r}
+data("Hawks")
+hawksSmall<-drop_na(select(Hawks,Age,Day,Month,Year,
+                           CaptureTime,Species,Wing,Weight,Tail))
+```
+# 1.Visualization
+## 1.1 Type of variables
+### Check the dim and head of data
+```{r}
+dim(hawksSmall)
+head(hawksSmall,5)
+names(hawksSmall)
+```
+### Month-> Categorical, Species->Categorical, Age->discrete, Wing-> Discrete, Weight->Discrete
+
+## 1.2 What's wrong with the plot
+### There are too many atttibutes in the plot, making it not easy to understatnd.
+
+## 1.3 Generate a histogram
+```{r}
+#Bimodal data
+ggplot(data = hawksSmall,aes(x=Weight)) + geom_histogram(binwidth = 100)
+```
+
+## 1.4 Generate a density plot
+```{r}
+density_half <-ggplot(data = hawksSmall,aes(x = Tail)) + geom_density(adjust =
+        0.5) + xlab("Tail(mm)") + ggtitle("adjust = 0.5")
+
+density_one <- ggplot(data = hawksSmall,aes(x = Tail)) + geom_density(adjust = 
+          1) + xlab("Tail(mm)") +ggtitle("adjust = 1")
+
+ggarrange(density_half,density_one,nrow = 2,ncol = 1)
+```
+```{r}
+ggplot(data = hawksSmall,aes(x = Tail,color = Species)) + geom_density() + xlab("Tail(mm)")
+```
+```{r}
+ggplot(data = hawksSmall,aes(x = Tail,y = Species,fill = Species)) + geom_violin() + xlab("Tail(mm)")
+```
+
+## 1.5 Scatter plots
+```{r}
+ggplot(data = hawksSmall,aes(x = Tail, y = Weight,color = Species,shape = Species))+
+  geom_point() + xlab("Tail(mm)") + ylab("Weight(gm)")
+```
+
+## 1.6 Trend Lines and facet wraps
+```{r}
+ggplot(data = hawksSmall,aes(x = Tail, y =Weight,color = Species)) + geom_point()+ geom_smooth(method = "lm")+facet_wrap(~Species) +xlab("Tail(mm)") + ylab("Weight(mm)")
+```
+
+# 2. Data Wrangling
+## 2.1 Select and filter functions
+```{r}
+hSF <- Hawks %>% filter(Species == "RT", Weight >=1000) %>% select(Wing,Weight,Tail) 
+dim(hSF)
+```
+
+## 2.2 The arrange function
+
+```{r}
+head(hSF %>% arrange(Wing),5)
+
+```
+
+## 2.3 Join and rename funtions
+```{r}
+inter <- data.frame(species_code = c("CH","RT","SS"),
+                    Species_name_full = c("Cooper's","Red-tailed","Sharp-shinned"))
+
+hawksFullname <-left_join(Hawks,rename(inter,Species = species_code),by ="Species" )
+hawksFullname %>% select(Species_name_full,Wing,Weight) %>% rename(Species = Species_name_full) %>% head(7)
+```
+
+## 2.4 The mutate function
+
+```{r}
+hawksWithBMI <- Hawks %>% mutate(bird_BMI = 1000 * Weight/(Wing^2) ) %>%
+  select(Species,bird_BMI) %>% arrange(desc(bird_BMI)) 
+head(hawksWithBMI,8)
+```
+```{r}
+hawksWithBMI %>% filter(bird_BMI < 100) %>% 
+  ggplot(aes(y=Species,x = bird_BMI,fill = Species))+
+  geom_violin()
+```
+
+## 2.5 Summarize and group-by functions
+```{r}
+hawksFullname %>% 
+  group_by(Species) %>% 
+  summarise(num_rows = n(),mn_wing = mean(Wing,na.rm = 1),md_wing = median(Wing,na.rm = 1),
+            t_mn_wing = mean(Wing,trim=0.1,na.rm = 1),
+            tail_wing_ratio = mean(Wing/Tail,na.rm = 1))
+```
+
+```{r}
+hawksFullname %>% select(Wing,Weight,Culmen,Hallux,Tail,StandardTail,Tarsus,Crop,Species_name_full) %>% rename(Species = Species_name_full) %>%group_by(Species) %>%summarise(across(everything(),~sum(is.na(.x))))
+```
+
+
+# 3. Exploratory data analysis
+
+## 3.1 Combining location estimators with the summarise function
+```{r}
+Hawks %>% summarise(Wing_mean = mean(Wing,na.rm = 1),
+                   Wing_t_mean = mean(Wing,trim = 0.1,na.rm = 1),
+                   Wing_med = median(Wing,na.rm = 1),
+                   Weight_mean = mean(Weight,na.rm = 1),
+                   Weight_t_mean = mean(Weight,na.rm = 1,trim = 0.1),
+                   Weight_med = median(Weight,na.rm = 1)
+                   )
+
+```
+```{r}
+Hawks %>% group_by(Species) %>% summarise(Wing_mean = mean(Wing,na.rm = 1),
+                   Wing_t_mean = mean(Wing,trim = 0.1,na.rm = 1),
+                   Wing_med = median(Wing,na.rm = 1),
+                   Weight_mean = mean(Weight,na.rm = 1),
+                   Weight_t_mean = mean(Weight,na.rm = 1,trim = 0.1),
+                   Weight_med = median(Weight,na.rm = 1)
+                   )
+```
+
+## 3.2 Location and dispersion estimatiors under linear transformation
+```{r}
+a = c(1,2,3,4,5,6,7,8,9,10)
+mean(a)
+var(a)
+```
+
+```{r}
+mean(5 *a + 10)
+var(5 *a +10)
+```
+
+## 3.3 Robustness of location estimators
+```{r}
+hal<-Hawks$Hallux     # Extract the vector of hallux lengths
+hal<-hal[!is.na(hal)] # Remove any nans
+outlier_val<-100
+num_outliers<-10
+corrupted_hal<-c(hal,rep(outlier_val,times=num_outliers))
+mean(hal)
+mean(corrupted_hal)
+```
+```{r}
+num_outliers_vect<-seq(0,1000)
+means_vect<-c()
+for(num_outliers in num_outliers_vect){
+corrupted_hal<-c(hal,rep(outlier_val,times=num_outliers))
+means_vect<-c(means_vect,mean(corrupted_hal))
+}
+```
+
+
+```{r}
+num_outliers_vect<-seq(0,1000)
+medians_vect <- c()
+for(num_outliers in num_outliers_vect){
+corrupted_hal<-c(hal,rep(outlier_val,times=num_outliers))
+medians_vect<-c(medians_vect,median(corrupted_hal))
+}
+```
+
+
+```{r}
+num_outliers_vect<-seq(0,1000)
+t_means_vect <- c()
+for(num_outliers in num_outliers_vect){
+corrupted_hal<-c(hal,rep(outlier_val,times=num_outliers))
+t_means_vect<-c(t_means_vect,mean(corrupted_hal,trim = 0.1))
+}
+```
+
+```{r}
+df_means_medians<-data.frame(num_outliers=num_outliers_vect,
+mean=means_vect,t_mean=t_means_vect,
+median=medians_vect)
+
+
+
+```
+
+```{r}
+df_means_medians%>%
+pivot_longer(!num_outliers, names_to = "Estimator", values_to = "Value")%>%
+ggplot(aes(x=num_outliers,color=Estimator,
+linetype=Estimator,y=Value))+
+geom_line()+xlab("Number of outliers")
+
+```
+
+## 3.4 Box plots and outliers
+```{r}
+Hawks %>% group_by(Species) %>% ggplot(aes(x = Species,y = Weight)) + geom_boxplot()
+```
+```{r}
+num_outliers <-function(sample)
+{
+  
+  out_num <- 0
+  q25 <- quantile(sample,prob = .25)
+  q75 <- quantile(sample,probs = .75)
+  sec <- q75-q25
+  for(num in sample)
+  {
+    if(num <q25-1.5*sec | num > q75 + 1.5*sec)
+    {
+      out_num = out_num +1
+    }
+  }
+  out_num
+}
+
+Hawks %>%filter(!is.na(Weight)) %>% group_by(Species) %>% summarise(outlier_weights = num_outliers(Weight))
+```
+## 3.5 Covariance and Correlation under linear transformation
+```{r}
+set.seed(10000)
+X = rnorm(100,5,5)
+Y = rnorm(100,10,10)
+cov(X,Y)
+cov(X,Y)/sd(X)/sd(Y)
+```
+```{r}
+new_X = 5*X + 10
+new_Y = 2*Y + 4
+cov(new_X,new_Y)
+cov(new_X,new_Y)/sd(new_X)/sd(new_Y)
+```
+
+
+
